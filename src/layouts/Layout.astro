@@ -1,0 +1,68 @@
+---
+import '../styles/global.css';
+import { profile } from '../data/profile';
+interface Props { title?: string; description?: string; }
+const { title = 'Sristi Bhattacharjee — Experience, education & research', description = profile.description } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const productionUrl = import.meta.env.PUBLIC_SITE_URL;
+const canonical = productionUrl ? new URL(Astro.url.pathname, productionUrl).href : null;
+const navigation = [{id:'experience',label:'Experience'},{id:'education',label:'Education'},{id:'work',label:'Research'},{id:'skills',label:'Skills'},{id:'about',label:'About'},{id:'contact',label:'Contact'}];
+---
+<!doctype html>
+<html lang="en-GB" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} /><meta name="theme-color" content="#141c28" />
+    <meta property="og:title" content={title} /><meta property="og:description" content={description} /><meta property="og:type" content="website" />
+    {!productionUrl && <meta name="robots" content="noindex, nofollow" />}
+    {canonical && <link rel="canonical" href={canonical} />}
+    <link rel="icon" type="image/svg+xml" href={`${base}favicon.svg`} />
+    <title>{title}</title>
+    <script type="application/ld+json" set:html={JSON.stringify({ '@context': 'https://schema.org', '@type': 'Person', name: profile.name, sameAs: [profile.linkedin] })} />
+    <script is:inline>try{const t=localStorage.getItem('sristi-theme-v2');if(t==='light')document.documentElement.dataset.theme='light'}catch{}</script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="site-header"><div class="wrap header-inner"><a class="header-identity" href={base} tabindex="-1" aria-hidden="true">Sristi Bhattacharjee</a><nav aria-label="Main navigation">{navigation.map(item => <a href={`${base}#${item.id}`}>{item.label}</a>)}</nav><button class="theme-toggle" aria-label="Switch to dark theme" title="Change colour theme" hidden><span aria-hidden="true">◐</span></button></div></header>
+    <main id="main" tabindex="-1"><slot /></main>
+    <footer class="wrap footer"><span>© {new Date().getFullYear()} Sristi Bhattacharjee</span><a href={profile.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn ↗</a><a href="#main">Back to top ↑</a></footer>
+    <script>
+      const header = document.querySelector<HTMLElement>('.site-header');
+      const identity = document.querySelector<HTMLAnchorElement>('.header-identity');
+      let scheduled = false;
+      const updateScroll = () => {
+        const scrolled = window.scrollY > 90;
+        header?.classList.toggle('is-scrolled', scrolled);
+        identity?.setAttribute('aria-hidden', String(!scrolled));
+        identity?.setAttribute('tabindex', scrolled ? '0' : '-1');
+        scheduled = false;
+      };
+      const scheduleScroll = () => { if (!scheduled) { scheduled = true; requestAnimationFrame(updateScroll); } };
+      window.addEventListener('scroll', scheduleScroll, { passive: true });
+      window.addEventListener('resize', scheduleScroll);
+      if ('ResizeObserver' in window) new ResizeObserver(scheduleScroll).observe(document.body);
+      updateScroll();
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+      if ('IntersectionObserver' in window && !reducedMotion.matches) {
+        const observer = new IntersectionObserver(entries => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('entry-animate');
+              entry.target.querySelector('.entry-content')?.addEventListener('animationend', () => entry.target.classList.remove('entry-animate'), { once: true });
+              observer.unobserve(entry.target);
+            }
+          }
+        }, { threshold: 0.15 });
+        document.querySelectorAll('.experience-entry').forEach(entry => observer.observe(entry));
+        reducedMotion.addEventListener('change', event => { if (event.matches) observer.disconnect(); });
+      }
+      const button = document.querySelector<HTMLButtonElement>('.theme-toggle');
+      if(button){
+        button.hidden=false;
+        const update=()=>button.setAttribute('aria-label',document.documentElement.dataset.theme==='dark'?'Switch to light theme':'Switch to dark theme');
+        update();
+        button.addEventListener('click',()=>{const theme=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=theme;try{localStorage.setItem('sristi-theme-v2',theme)}catch{}update()});
+      }
+    </script>
+  </body>
+</html>
